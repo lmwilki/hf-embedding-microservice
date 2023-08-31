@@ -1,0 +1,16 @@
+services:
+  hf-embed:
+    image: hf-embed:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 5000:5000
+    environment:
+      - PORT=5000
+      - MODEL_NAME=all-mpnet-base-v2
+    networks:
+      - hf-embed-network
+networks:
+  hf-embed-network:
+    driver: bridge
