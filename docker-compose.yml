@@ -8,7 +8,7 @@ services:
       - 5000:5000
     environment:
       - PORT=5000
-      - MODEL_NAME=all-mpnet-base-v2
+      - MODEL_NAMES=all-mpnet-base-v2|paraphrase-multilingual-MiniLM-L12-v2
     networks:
       - hf-embed-network
 networks:
