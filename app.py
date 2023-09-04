@@ -3,6 +3,10 @@ import os
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from typing import List
+from uuid import uuid4
+
+IS_READY = False
+
 
 available_models = []
 
@@ -20,6 +24,20 @@ for model_path in available_models:
     print(f"Loaded model {model_name}")
 
 
+model_info = {}
+
+for model_name, model in models.items():
+
+    model_info_entry = {
+        "model_name": model_name,
+        "max_seq_length": model.get_max_seq_length(),
+        "vector_size": model.get_sentence_embedding_dimension()
+    }
+
+    model_info[model_name] = model_info_entry
+
+IS_READY = True
+
 app = FastAPI(
     title="Sentence Embedding API",
     description="A simple API that uses sentence-transformers to embed sentences"
@@ -29,6 +47,13 @@ app = FastAPI(
 def root():
     return RedirectResponse(url="/docs")
 
+@app.get("/health")
+def health():
+    if IS_READY:
+        return {"status": "ok"}
+    else:
+        return {"status": "loading"}
+
 @app.get("/models")
 def get_models():
     return {"models": list(models.keys())}
@@ -37,7 +62,7 @@ def get_models():
 def get_model(model_name: str):
     if model_name not in models:
         return {"message": f"Model {model_name} not found"}
-    return True
+    return model_info[model_name]
 
 @app.post("/models/{model_name}/embed")
 def embed_sentences(model_name: str, sentences: List[str]):
@@ -47,17 +72,14 @@ def embed_sentences(model_name: str, sentences: List[str]):
     
     model = models[model_name]
     embeddings = model.encode(sentences)
-    return {"embeddings": embeddings.tolist()}
 
-@app.post("/models/{model_name}/similarity")
-def similarity(model_name: str, sentences: List[str]):
-    if model_name not in models:
-        return {"message": f"Model {model_name} not found"}
-    
-    model = models[model_name]
-    embeddings = model.encode(sentences)
-    similarity_matrix = [[round(float(x), 4) for x in embeddings[i].dot(embeddings.T)] for i in range(len(sentences))]
-    return {"similarity_matrix": similarity_matrix}
+    output = {
+        "embedding_id": str(uuid4()),
+        "model_info": model_info[model_name],
+        "embeddings": embeddings
+    }
+
+    return output
 
 
 
