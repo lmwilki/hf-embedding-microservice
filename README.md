@@ -11,10 +11,10 @@ A sentence embedding microservice that downloads models during build time and se
 docker build -t hf-embedding-microservice:latest . 
 ```
 
-You can swap the model by changing the `MODEL_NAME` environment variable in the Dockerfile. The default model is `sentence-transformers/all-mpnet-base-v2`. You can find a list of models [here](https://huggingface.co/sentence-transformers).
+You can swap the models by changing the `MODEL_NAMES` environment variable in the Dockerfile. The default model is `all-mpnet-base-v2|paraphrase-multilingual-MiniLM-L12-v2`. You just need a `|` between the models you want to download. You can find a list of models [here](https://huggingface.co/sentence-transformers).
 
 ```bash
-docker build -t hf-embedding-microservice:latest . -e MODEL_NAME="sentence-transformers/paraphrase-MiniLM-L6-v2"
+docker build -t hf-embedding-microservice:latest . -e MODEL_NAMES="sentence-transformers/paraphrase-MiniLM-L6-v2"
 ```
 
 ### Run
