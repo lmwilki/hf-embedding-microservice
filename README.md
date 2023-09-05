@@ -30,6 +30,8 @@ docker-compose up
 ### Access the API
 You can load the docs at http://localhost:5000/docs or http://localhost:5000 (it redirects to /docs).
 
+There is also test notebook called `test.ipynb` that you can use to test the API.
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
