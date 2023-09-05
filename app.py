@@ -11,15 +11,21 @@ from datetime import datetime
 # === Data Models ===
 
 class ModelInfo(pydantic.BaseModel):
-    model_name: str
+    model: str
     max_seq_length: int
     vector_size: int
 
+class Embedding(pydantic.BaseModel):
+    object: str = "embedding"
+    index: int
+    embedding: List[float]
 
 class EmbeddingResponse(pydantic.BaseModel):
+    object: str = "list"
+    data: List[Embedding]
     embedding_id: str
+    model: str
     model_info: ModelInfo
-    embeddings: List[List[float]]
 
 class EmbeddingRequest(pydantic.BaseModel):
     sentences: List[str]
@@ -50,24 +56,23 @@ for dirpath, dirnames, filenames in os.walk("models"):
 models = {}
 
 for model_path in available_models:
-    model_name = model_path.split("/")[-1]
-    models[model_name] = SentenceTransformer(model_path)
-    print(f"Loaded model {model_name}")
+    model = model_path.split("/")[-1]
+    models[model] = SentenceTransformer(model_path)
+    print(f"Loaded model {model}")
 
 # Create model info
 model_info = {}
 
-for model_name, model in models.items():
+for model, model_obj in models.items():
 
     model_info_entry = {
-        "model_name": model_name,
-        "max_seq_length": model.get_max_seq_length(),
-        "vector_size": model.get_sentence_embedding_dimension()
+        "model": model,
+        "max_seq_length": model_obj.get_max_seq_length(),
+        "vector_size": model_obj.get_sentence_embedding_dimension()
     }
 
-    model_info[model_name] = model_info_entry
+    model_info[model] = model_info_entry
 
-IS_READY = True
 
 # Create API
 
@@ -133,43 +138,57 @@ def get_models():
     """
     return {"models": list(model_info.values())}
 
-@app.get("/models/{model_name}", response_model=ModelInfo, tags=["models"])
-def get_model(model_name: str):
+@app.get("/models/{model}", response_model=ModelInfo, tags=["models"])
+def get_model(model: str):
     """Returns information about a given model
 
     Args:
-        model_name (str): The name of the model
+        model (str): The name of the model
 
     Returns:
         ModelInfo: Information about the model
     """
 
-    if model_name not in models:
-        return {"message": f"Model {model_name} not found"}
-    return model_info[model_name]
+    if model not in models:
+        return {"message": f"Model {model} not found"}
+    return model_info[model]
 
-@app.post("/models/{model_name}/embed", response_model=EmbeddingResponse, tags=["models"])
-def embed_sentences(model_name: str, sentences: List[str]):
+@app.post("/models/{model}/embed", response_model=EmbeddingResponse, tags=["models"])
+def embed_sentences(model: str, sentences: List[str]):
     """Embeds a list of sentences using a given model
 
     Args:
-        model_name (str): The name of the model
+        model (str): The name of the model
         sentences (List[str]): A list of sentences
 
     Returns:
         EmbeddingResponse: The embeddings of the sentences
     """
 
-    if model_name not in models:
-        return {"message": f"Model {model_name} not found"}
+    if model not in models:
+        return {"message": f"Model {model} not found"}
     
-    model = models[model_name]
-    embeddings = model.encode(sentences)
+    model_obj = models[model]
+    embeddings = model_obj.encode(sentences)
 
+    reformatted_embeddings = []
+
+    for i, embedding in enumerate(embeddings):
+        new_embedding = {
+            "object": "embedding",
+            "index": i,
+            "embedding": list(embedding)
+        }
+        reformatted_embeddings.append(new_embedding)
+
+    
+    
     output = {
+        "object": "list",
+        "data": reformatted_embeddings,
         "embedding_id": str(uuid4()),
-        "model_info": model_info[model_name],
-        "embeddings": embeddings
+        "model": model,
+        "model_info": model_info[model]
     }
 
     return output
